@@ -16,7 +16,7 @@
  * hprose tags library for php5.                          *
  *                                                        *
  * LastModified: Nov 10, 2010                             *
- * Author: Ma Bingyao <andot@hprfc.com>                   *
+ * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
 
@@ -59,4 +59,3 @@ class HproseTags {
     const TagError = 'E';
     const TagEnd = 'z';
 }
-?>
