@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,10 +14,12 @@
  *                                                        *
  * hprose time class for php5.                            *
  *                                                        *
- * LastModified: Jan 2, 2014                              *
+ * LastModified: Jul 12, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
+
+if (!extension_loaded('hprose')) {
 
 class HproseTime {
     public $hour;
@@ -58,26 +59,26 @@ class HproseTime {
                     $this->microsecond = $args[0]->microsecond;
                 }
                 else {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 break;
             case 5:
                 $this->utc = $args[4];
             case 4:
                 if (($args[3] < 0) || ($args[3] > 999999)) {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 $this->microsecond = $args[3];
             case 3:
                 if (!self::isValidTime($args[0], $args[1], $args[2])) {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 $this->hour = $args[0];
                 $this->minute = $args[1];
                 $this->second = $args[2];
                 break;
             default:
-                throw new HproseException('Unexpected arguments');
+                throw new Exception('Unexpected arguments');
         }
     }
     public function timestamp() {
@@ -95,7 +96,7 @@ class HproseTime {
             $format = ($fullformat ? '%02d:%02d:%02d': '%02d%02d%02d');
             $str = sprintf($format, $this->hour, $this->minute, $this->second);
         }
-        if ($this->microsecond % 1000 == 0) {
+        else if ($this->microsecond % 1000 == 0) {
             $format = ($fullformat ? '%02d:%02d:%02d.%03d': '%02d%02d%02d.%03d');
             $str = sprintf($format, $this->hour, $this->minute, $this->second, (int)($this->microsecond / 1000));
         }
@@ -114,7 +115,10 @@ class HproseTime {
     public static function isValidTime($hour, $minute, $second, $microsecond = 0) {
         return !(($hour < 0) || ($hour > 23) ||
             ($minute < 0) || ($minute > 59) ||
-            ($second < 0) || ($second > 59) ||
+            ($second < 0) || ($second > 60) ||
             ($microsecond < 0) || ($microsecond > 999999));
     }
 }
+
+} // endif (!extension_loaded('hprose'))
+?>

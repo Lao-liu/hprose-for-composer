@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,33 +14,32 @@
  *                                                        *
  * hprose common library for php5.                        *
  *                                                        *
- * LastModified: Mar 13, 2014                             *
+ * LastModified: Jul 12, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
 
+if (!extension_loaded('hprose')) {
+
 require_once('HproseResultMode.php');
-require_once('HproseException.php');
 require_once('HproseFilter.php');
 require_once('HproseDate.php');
 require_once('HproseTime.php');
 require_once('HproseDateTime.php');
-
-defined('E_DEPRECATED') or define('E_DEPRECATED', 8192);
-defined('E_USER_DEPRECATED') or define('E_USER_DEPRECATED', 16384);
 
 class HproseBytes {
     public $value;
     public function __construct($val) {
         $this->value = $val;
     }
-    public function __toString($value) {
-        return (string)$value;
+    public function __toString() {
+        return (string)$this->value;
     }
 }
 
-function bytes($val) {
-    return new HproseBytes($val);
+function &bytes($val) {
+    $b = new HproseBytes($val);
+    return $b;
 }
 
 class HproseMap {
@@ -54,8 +52,9 @@ class HproseMap {
     }
 }
 
-function map(&$val) {
-    return new HproseMap($val);
+function &map($val) {
+    $m = new HproseMap($val);
+    return $m;
 }
 
 /*
@@ -165,7 +164,7 @@ function is_list(array $a) {
  mixed array_ref_search(mixed &$value, array $array)
  if $value ref in $array, return the index else false
 */
-function array_ref_search(&$value, &$array) {
+function array_ref_search(&$value, $array) {
     if (!is_array($value)) return array_search($value, $array, true);
     $temp = $value;
     foreach ($array as $i => &$ref) {
@@ -189,9 +188,12 @@ if (!function_exists('spl_object_hash')) {
     }
 
     function spl_object_hash($object) {
-        ob_start("spl_object_callback");
+        ob_start("spl_object_hash_callback");
         var_dump($object);
         preg_match('[#(\d+)]', ob_get_clean(), $match);
         return $match[1];
     }
 }
+
+} // endif (!extension_loaded('hprose'))
+?>

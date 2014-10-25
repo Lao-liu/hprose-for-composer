@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,10 +14,12 @@
  *                                                        *
  * hprose datetime class for php5.                        *
  *                                                        *
- * LastModified: Jan 2, 2014                              *
+ * LastModified: Jul 12, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
+
+if (!extension_loaded('hprose')) {
 
 require_once('HproseDate.php');
 
@@ -57,23 +58,7 @@ class HproseDateTime extends HproseDate {
                     $this->hour = $time['hours'];
                     $this->minute = $time['minutes'];
                     $this->second = $time['seconds'];
-                }
-                elseif ($args[0] instanceof HproseDate) {
-                    $this->year = $args[0]->year;
-                    $this->month = $args[0]->month;
-                    $this->day = $args[0]->day;
-                    $this->hour = 0;
-                    $this->minute = 0;
-                    $this->second = 0;
-                }
-                elseif ($args[0] instanceof HproseTime) {
-                    $this->year = 1970;
-                    $this->month = 1;
-                    $this->day = 1;
-                    $this->hour = $args[0]->hour;
-                    $this->minute = $args[0]->minute;
-                    $this->second = $args[0]->second;
-                    $this->microsecond = $args[0]->microsecond;
+                    $this->utc = false;
                 }
                 elseif ($args[0] instanceof HproseDateTime) {
                     $this->year = $args[0]->year;
@@ -83,9 +68,29 @@ class HproseDateTime extends HproseDate {
                     $this->minute = $args[0]->minute;
                     $this->second = $args[0]->second;
                     $this->microsecond = $args[0]->microsecond;
+                    $this->utc = $args[0]->utc;
+                }
+                elseif ($args[0] instanceof HproseDate) {
+                    $this->year = $args[0]->year;
+                    $this->month = $args[0]->month;
+                    $this->day = $args[0]->day;
+                    $this->hour = 0;
+                    $this->minute = 0;
+                    $this->second = 0;
+                    $this->utc = $args[0]->utc;
+                }
+                elseif ($args[0] instanceof HproseTime) {
+                    $this->year = 1970;
+                    $this->month = 1;
+                    $this->day = 1;
+                    $this->hour = $args[0]->hour;
+                    $this->minute = $args[0]->minute;
+                    $this->second = $args[0]->second;
+                    $this->microsecond = $args[0]->microsecond;
+                    $this->utc = $args[0]->utc;
                 }
                 else {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 break;
             case 2:
@@ -97,14 +102,17 @@ class HproseDateTime extends HproseDate {
                     $this->minute = $args[1]->minute;
                     $this->second = $args[1]->second;
                     $this->microsecond = $args[1]->microsecond;
+                    $this->utc = $args[0]->utc;
                 }
                 else {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 break;
+            case 4:
+                $this->utc = $args[3];
             case 3:
                 if (!self::isValidDate($args[0], $args[1], $args[2])) {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 $this->year = $args[0];
                 $this->month = $args[1];
@@ -117,15 +125,15 @@ class HproseDateTime extends HproseDate {
                 $this->utc = $args[7];
             case 7:
                 if (($args[6] < 0) || ($args[6] > 999999)) {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 $this->microsecond = $args[6];
             case 6:
                 if (!self::isValidDate($args[0], $args[1], $args[2])) {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 if (!self::isValidTime($args[3], $args[4], $args[5])) {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 $this->year = $args[0];
                 $this->month = $args[1];
@@ -135,7 +143,7 @@ class HproseDateTime extends HproseDate {
                 $this->second = $args[5];
                 break;
             default:
-                throw new HproseException('Unexpected arguments');
+                throw new Exception('Unexpected arguments');
         }
     }
 
@@ -319,3 +327,6 @@ class HproseDateTime extends HproseDate {
         return HproseTime::isValidTime($hour, $minute, $second, $microsecond);
     }
 }
+
+} // endif (!extension_loaded('hprose'))
+?>

@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -23,3 +22,5 @@
 require_once("HproseStringStream.php");
 require_once("HproseFileStream.php");
 require_once("HproseProcStream.php");
+
+?>

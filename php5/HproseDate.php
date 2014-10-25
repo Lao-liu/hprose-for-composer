@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,10 +14,12 @@
  *                                                        *
  * hprose date class for php5.                            *
  *                                                        *
- * LastModified: Jan 2, 2014                              *
+ * LastModified: Jul 12, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
+
+if (!extension_loaded('hprose')) {
 
 class HproseDate {
     public $year;
@@ -36,7 +37,7 @@ class HproseDate {
                 $this->day = $time['mday'];
                 break;
             case 1:
-                $time = false;
+                $time = $args[0];
                 if (is_int($args[0])) {
                     $time = getdate($args[0]);
                 }
@@ -54,108 +55,53 @@ class HproseDate {
                     $this->day = $args[0]->day;
                 }
                 else {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 break;
             case 4:
                 $this->utc = $args[3];
             case 3:
                 if (!self::isValidDate($args[0], $args[1], $args[2])) {
-                    throw new HproseException('Unexpected arguments');
+                    throw new Exception('Unexpected arguments');
                 }
                 $this->year = $args[0];
                 $this->month = $args[1];
                 $this->day = $args[2];
                 break;
             default:
-                throw new HproseException('Unexpected arguments');
+                throw new Exception('Unexpected arguments');
         }
+    }
+    private static function addDaysToYear(&$days, &$year, $period, $times) {
+        if ($days >= $period || $days <= -$period) {
+            $remainder = $days % $period;
+            $year += $times * (int)(($days - $remainder) / $period);
+            if ($year < 1 || $year > 9999) return false;
+            $days = $remainder;
+        }
+        return true;
     }
     public function addDays($days) {
         if (!is_int($days)) return false;
         $year = $this->year;
         if ($days == 0) return true;
-        if ($days >= 146097 || $days <= -146097) {
-            $remainder = $days % 146097;
-            if ($remainder < 0) {
-                $remainder += 146097;
-            }
-            $years = 400 * (int)(($days - $remainder) / 146097);
-            $year += $years;
-            if ($year < 1 || $year > 9999) return false;
-            $days = $remainder;
-        }
-        if ($days >= 36524 || $days <= -36524) {
-            $remainder = $days % 36524;
-            if ($remainder < 0) {
-                $remainder += 36524;
-            }
-            $years = 100 * (int)(($days - $remainder) / 36524);
-            $year += $years;
-            if ($year < 1 || $year > 9999) return false;
-            $days = $remainder;
-        }
-        if ($days >= 1461 || $days <= -1461) {
-            $remainder = $days % 1461;
-            if ($remainder < 0) {
-                $remainder += 1461;
-            }
-            $years = 4 * (int)(($days - $remainder) / 1461);
-            $year += $years;
-            if ($year < 1 || $year > 9999) return false;
-            $days = $remainder;
-        }
+        if (!self::addDaysToYear($days, $year, 146097, 400)) return false;
+        if (!self::addDaysToYear($days, $year, 1461, 4)) return false;
         $month = $this->month;
         while ($days >= 365) {
             if ($year >= 9999) return false;
-            if ($month <= 2) {
-                if ((($year % 4) == 0) ? (($year % 100) == 0) ? (($year % 400) == 0) : true : false) {
-                    $days -= 366;
-                }
-                else {
-                    $days -= 365;
-                }
-                $year++;
-            }
-            else {
-                $year++;
-                if ((($year % 4) == 0) ? (($year % 100) == 0) ? (($year % 400) == 0) : true : false) {
-                    $days -= 366;
-                }
-                else {
-                    $days -= 365;
-                }
-            }
+            $days -= self::daysInYear($month <= 2 ? $year++ : ++$year);
         }
         while ($days < 0) {
             if ($year <= 1) return false;
-            if ($month <= 2) {
-                $year--;
-                if ((($year % 4) == 0) ? (($year % 100) == 0) ? (($year % 400) == 0) : true : false) {
-                    $days += 366;
-                }
-                else {
-                    $days += 365;
-                }
-            }
-            else {
-                if ((($year % 4) == 0) ? (($year % 100) == 0) ? (($year % 400) == 0) : true : false) {
-                    $days += 366;
-                }
-                else {
-                    $days += 365;
-                }
-                $year--;
-            }
+            $days += self::daysInYear($month <= 2 ? --$year : $year--);
         }
         $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
         $day = $this->day;
         while ($day + $days > $daysInMonth) {
             $days -= $daysInMonth - $day + 1;
-            $month++;
-            if ($month > 12) {
-                if ($year >= 9999) return false;
-                $year++;
+            if (++$month > 12) {
+                if (++$year >= 9999) return false;
                 $month = 1;
             }
             $day = 1;
@@ -226,6 +172,9 @@ class HproseDate {
         }
         return cal_days_in_month(CAL_GREGORIAN, $month, $year);
     }
+    public static function daysInYear($year) {
+        return self::isLeapYear($year) ? 366 : 365;
+    }
     public static function isValidDate($year, $month, $day) {
         if (($year >= 1) && ($year <= 9999)) {
             return checkdate($month, $day, $year);
@@ -264,7 +213,10 @@ class HproseDate {
             $m = $this->month;
             $d = $this->day;
         }
-        $days = self::isLeapYear($y) ? $daysToMonth365 : $daysToMonth366;
+        $days = self::isLeapYear($y) ? $daysToMonth366 : $daysToMonth365;
         return $days[$m - 1] + $d;
     }
 }
+
+} // endif (!extension_loaded('hprose'))
+?>

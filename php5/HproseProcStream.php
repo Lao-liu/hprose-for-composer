@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,14 +14,12 @@
  *                                                        *
  * hprose proc stream class for php5.                     *
  *                                                        *
- * LastModified: Jan 2, 2014                              *
+ * LastModified: Jun 23, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
 
-require_once("HproseAbstractStream.php");
-
-class HproseProcStream extends HproseAbstractStream {
+class HproseProcStream {
     protected $process;
     protected $pipes;
     protected $buf;
@@ -136,3 +133,5 @@ class HproseProcStream extends HproseAbstractStream {
         return fwrite($this->pipes[0], $string, $length);
     }
 }
+
+?>

@@ -1,46 +1,78 @@
-Hprose
-===============
+# Hprose for PHP
 
-*Hprose* is a High Performance Remote Object Service Engine. 
+>---
+- **[Introduction](#introduction)**
+- **[Usage](#usage)**
+    - **[Server](#server)**
+    - **[Client](#client)**
+    - **[Exception Handling](#exception-handling)**
 
-It is a modern, lightweight, cross-language, cross-platform, object-oriented,
-high performance, remote dynamic communication middleware. It is not only easy to
-use, but powerful. You just need a little time to learn, then you can use it to
-easily construct cross language cross platform distributed application system.
+>---
 
-Language support
-----------------
+## Introduction
+
+*Hprose* is a High Performance Remote Object Service Engine.
+
+It is a modern, lightweight, cross-language, cross-platform, object-oriented, high performance, remote dynamic communication middleware. It is not only easy to use, but powerful. You just need a little time to learn, then you can use it to easily construct cross language cross platform distributed application system.
 
 *Hprose* supports many programming languages, for example:
 
-    * C++
-    * .NET(C#, Visual Basic...)
-    * Java
-    * Delphi/Free Pascal
-    * Objective-C
-    * ActionScript
-    * JavaScript
-    * Node.js
-    * Python
-    * Ruby
-    * PHP
-    * ASP
-    * Perl
-    * AAuto Quicker
-    * ...
+* AAuto Quicker
+* ActionScript
+* ASP
+* C++
+* Dart
+* Delphi/Free Pascal
+* dotNET(C#, Visual Basic...)
+* Golang
+* Java
+* JavaScript
+* Node.js
+* Objective-C
+* Perl
+* PHP
+* Python
+* Ruby
+* ...
 
-Through *Hprose*, You can conveniently and efficiently intercommunicate between those
-programming languages.
+Through *Hprose*, You can conveniently and efficiently intercommunicate between those programming languages.
 
-License
--------
+This project is the implementation of Hprose for PHP.
 
-*Hprose* is free software, available with full source. You may use *hprose* under the terms of the MIT License. 
+## Usage
 
-The MIT License is simple and easy to understand and it places almost no restrictions on what you can do with *hprose*.
+### Server
 
-You are free to use *hprose* in commercial projects as long as the copyright header is left intact.
+Hprose for PHP is very easy to use. You can create a hprose server like this:
 
+```php
+<?php
+    require_once('php5/HproseHttpServer.php');
 
+    function hello($name) {
+        return 'Hello ' . $name;
+    }
 
+    $server = new HproseHttpServer();
+    $server->addFunction('hello');
+    $server->start();
+?>
+
+```
+
+### Client
+
+Then you can create a hprose client to invoke it like this:
+
+```php
+<?php
+    require_once("php5/HproseHttpClient.php");
+    $client = new HproseHttpClient('http://127.0.0.1/server.php');
+    echo $client->hello('World');
+?>
+```
+
+### Exception Handling
+
+If an error occurred on the server, or your service function/method throw an exception. it will be sent to the client, and the client will throw it as an exception. You can use the try statement to catch it.
 

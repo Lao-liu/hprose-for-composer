@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,10 +14,12 @@
  *                                                        *
  * hprose class manager library for php5.                 *
  *                                                        *
- * LastModified: Nov 12, 2013                             *
+ * LastModified: Oct 21, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
+
+if (!extension_loaded('hprose')) {
 
 class HproseClassManager {
     private static $classCache1 = array();
@@ -45,8 +46,11 @@ class HproseClassManager {
                 self::register($class, $alias);
                 return $class;
             }
-            eval("class " . $alias . " { }");
+            eval("class " . $alias . " { public function __construct() {} }");
         }
         return $alias;
     }
 }
+
+} // endif (!extension_loaded('hprose'))
+?>

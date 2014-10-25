@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,10 +14,12 @@
  *                                                        *
  * hprose writer class for php5.                          *
  *                                                        *
- * LastModified: Mar 4, 2014                              *
+ * LastModified: Jul 12, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
+
+if (!extension_loaded('hprose')) {
 
 require_once('HproseCommon.php');
 require_once('HproseTags.php');
@@ -165,7 +166,7 @@ class HproseWriter {
             }
         }
         else {
-            throw new HproseException('Not support to serialize this data');
+            throw new Exception('Not support to serialize this data');
         }
     }
     public function writeInteger($integer) {
@@ -297,7 +298,7 @@ class HproseWriter {
     public function writeMapWithRef(&$map) {
         if (!$this->refer->write($this->stream, $map)) $this->writeMap($map);
     }
-    public function writeObject($obj, $checkRef = false) {
+    public function writeObject($obj) {
         $class = get_class($obj);
         $alias = HproseClassManager::getClassAlias($class);
         $fields = array_keys((array)$obj);
@@ -327,14 +328,12 @@ class HproseWriter {
         $count = count($fields);
         if ($count > 0) $this->stream->write((string)$count);
         $this->stream->write(HproseTags::TagOpenbrace);
-        if($count){
-            foreach($fields as $i => $field){
-                $field = $fields[$i];
-                if ($field{0} === "\0") {
-                    $field = substr($field, strpos($field, "\0", 1) + 1);
-                }
-                $this->writeString($field);
+        for ($i = 0; $i < $count; ++$i) {
+            $field = $fields[$i];
+            if ($field{0} === "\0") {
+                $field = substr($field, strpos($field, "\0", 1) + 1);
             }
+            $this->writeString($field);
         }
         $this->stream->write(HproseTags::TagClosebrace);
         $index = count($this->fieldsref);
@@ -348,3 +347,6 @@ class HproseWriter {
         $this->refer->reset();
     }
 }
+
+} // endif (!extension_loaded('hprose'))
+?>

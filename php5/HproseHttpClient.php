@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -29,3 +28,5 @@ elseif (function_exists('curl_init')) {
 else {
     require_once('HproseFgcHttpClient.php');
 }
+
+?>

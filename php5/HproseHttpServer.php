@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,13 +14,16 @@
  *                                                        *
  * hprose http server library for php5.                   *
  *                                                        *
- * LastModified: Apr 18, 2014                             *
+ * LastModified: Oct 13, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
 
 require_once('HproseCommon.php');
 require_once('HproseIO.php');
+
+defined('E_DEPRECATED') or define('E_DEPRECATED', 8192);
+defined('E_USER_DEPRECATED') or define('E_USER_DEPRECATED', 16384);
 
 class HproseHttpServer {
     private $magic_methods = array("__construct",
@@ -67,6 +69,7 @@ class HproseHttpServer {
     private $filters;
     private $origins;
     private $simple;
+    private $context;
     public $onBeforeInvoke;
     public $onAfterInvoke;
     public $onSendHeader;
@@ -84,6 +87,9 @@ class HproseHttpServer {
         $this->origins = array();
         $this->simple = false;
         $this->error_types = E_ALL & ~E_NOTICE;
+        $this->context = new stdClass();
+        $this->context->server = $this;
+        $this->context->userdata = new stdClass();
         $this->onBeforeInvoke = NULL;
         $this->onAfterInvoke = NULL;
         $this->onSendHeader = NULL;
@@ -92,16 +98,14 @@ class HproseHttpServer {
     private function inputFilter($data) {
         $count = count($this->filters);
         for ($i = $count - 1; $i >= 0; $i--) {
-            $data = $this->filters[$i]->inputFilter($data, $this);
+            $data = $this->filters[$i]->inputFilter($data, $this->context);
         }
         return $data;
     }
     private function outputFilter($data) {
         $count = count($this->filters);
-        if($count){
-            foreach($this->filters as $i => $filter){
-                $data = $this->$filter->outputFilter($data, $this);
-            }
+        for ($i = 0; $i < $count; $i++) {
+            $data = $this->filters[$i]->outputFilter($data, $this->context);
         }
         return $data;
     }
@@ -118,7 +122,7 @@ class HproseHttpServer {
                 $error = preg_replace('/ in <b>.*<\/b>$/', '', $match[1]);
             }
             $data = HproseTags::TagError .
-                 HproseFormatter::serialize(trim($error), true) .
+                 hprose_serialize_string(trim($error)) .
                  HproseTags::TagEnd;
         }
         return $this->outputFilter($data);
@@ -133,7 +137,7 @@ class HproseHttpServer {
     }
     private function sendHeader() {
         if ($this->onSendHeader) {
-            call_user_func($this->onSendHeader);
+            call_user_func($this->onSendHeader, $this->context);
         }
         header("Content-Type: text/plain");
         if ($this->P3P) {
@@ -159,19 +163,19 @@ class HproseHttpServer {
     }
     private function sendError() {
         if ($this->onSendError) {
-            call_user_func($this->onSendError, $this->error);
+            call_user_func($this->onSendError, $this->error, $this->context);
         }
         @ob_clean();
-        $this->output->write(HproseTags::TagError);
-        $writer = new HproseWriter($this->output, true);
-        $writer->writeString($this->error);
-        $this->output->write(HproseTags::TagEnd);
+        $this->output->write(HproseTags::TagError .
+                             hprose_serialize_string($this->error) .
+                             HproseTags::TagEnd);
         $this->responseEnd();
     }
     private function doInvoke() {
-        $simpleReader = new HproseReader($this->input, true);
+        // $simpleReader = new HproseReader($this->input, true);
         do {
-            $functionName = $simpleReader->readString();
+            $functionName = hprose_unserialize_with_stream($this->input, true);
+            // $functionName = $simpleReader->readString();
             $aliasName = strtolower($functionName);
             $resultMode = HproseResultMode::Normal;
             if (array_key_exists($aliasName, $this->functions)) {
@@ -185,29 +189,37 @@ class HproseHttpServer {
                 $simple = $this->simpleModes['*'];
             }
             else {
-                throw new HproseException("Can't find this function " . $functionName . "().");
+                throw new Exception("Can't find this function " . $functionName . "().");
             }
             if ($simple === NULL) $simple = $this->simple;
-            $writer = new HproseWriter($this->output, $simple);
+            // $writer = new HproseWriter($this->output, $simple);
             $args = array();
             $byref = false;
-            $tag = $simpleReader->checkTags(array(HproseTags::TagList,
-                                            HproseTags::TagEnd,
-                                            HproseTags::TagCall));
+            // $tag = $simpleReader->checkTags(array(HproseTags::TagList,
+            //                                 HproseTags::TagEnd,
+            //                                 HproseTags::TagCall));
+            $tag = $this->input->getc();
             if ($tag == HproseTags::TagList) {
-                $reader = new HproseReader($this->input);
-                $args = &$reader->readListWithoutTag();
-                $tag = $reader->checkTags(array(HproseTags::TagTrue,
-                                                HproseTags::TagEnd,
-                                                HproseTags::TagCall));
+                // $reader = new HproseReader($this->input);
+                // $args = &$reader->readListWithoutTag();
+                $args = &hprose_unserialize_list_with_stream($this->input);
+                $tag = $this->input->getc();
+                // $tag = $reader->checkTags(array(HproseTags::TagTrue,
+                //                                 HproseTags::TagEnd,
+                //                                 HproseTags::TagCall));
                 if ($tag == HproseTags::TagTrue) {
                     $byref = true;
-                    $tag = $reader->checkTags(array(HproseTags::TagEnd,
-                                                    HproseTags::TagCall));
+                    $tag = $this->input->getc();
+                    // $tag = $reader->checkTags(array(HproseTags::TagEnd,
+                    //                                 HproseTags::TagCall));
                 }
             }
+            if (($tag != HproseTags::TagEnd) && ($tag != HproseTags::TagCall)) {
+                throw new Exception($tag);
+                //throw new Exception("Wrong Request: \r\n" . $GLOBALS['HTTP_RAW_POST_DATA']);
+            }
             if ($this->onBeforeInvoke) {
-                call_user_func($this->onBeforeInvoke, $functionName, $args, $byref);
+                call_user_func($this->onBeforeInvoke, $functionName, $args, $byref, $this->context);
             }
             if (array_key_exists('*', $this->functions) && ($function === $this->functions['*'])) {
                 $arguments = array($functionName, &$args);
@@ -223,7 +235,7 @@ class HproseHttpServer {
             }
             $result = call_user_func_array($function, $arguments);
             if ($this->onAfterInvoke) {
-                call_user_func($this->onAfterInvoke, $functionName, $args, $byref, $result);
+                call_user_func($this->onAfterInvoke, $functionName, $args, $byref, $result, $this->context);
             }
             // some service functions/methods may echo content, we need clean it
             @ob_clean();
@@ -240,13 +252,15 @@ class HproseHttpServer {
                     $this->output->write($result);
                 }
                 else {
-                    $writer->reset();
-                    $writer->serialize($result);
+                    // $writer->reset();
+                    // $writer->serialize($result);
+                    $this->output->write(hprose_serialize($result, $simple));
                 }
                 if ($byref) {
-                    $this->output->write(HproseTags::TagArgument);
-                    $writer->reset();
-                    $writer->writeList($args);
+                    $this->output->write(HproseTags::TagArgument .
+                                         hprose_serialize_list($args, $simple));
+                    // $writer->reset();
+                    // $writer->writeList($args);
                 }
             }
         } while ($tag == HproseTags::TagCall);
@@ -255,10 +269,9 @@ class HproseHttpServer {
     }
     private function doFunctionList() {
         $functions = array_values($this->funcNames);
-        $writer = new HproseWriter($this->output, true);
-        $this->output->write(HproseTags::TagFunctions);
-        $writer->writeList($functions);
-        $this->output->write(HproseTags::TagEnd);
+        $this->output->write(HproseTags::TagFunctions .
+                             hprose_serialize_list($functions, true) .
+                             HproseTags::TagEnd);
         $this->responseEnd();
     }
     private function getDeclaredOnlyMethods($class) {
@@ -294,27 +307,26 @@ class HproseHttpServer {
                 $this->simpleModes[$aliasName] = $simple;
             }
             else {
-                throw new HproseException('Argument alias is not a string');
+                throw new Exception('Argument alias is not a string');
             }
         }
         else {
-            throw new HproseException('Argument function is not a callable variable');
+            throw new Exception('Argument function is not a callable variable');
         }
     }
     public function addFunctions($functions, $aliases = NULL, $resultMode = HproseResultMode::Normal, $simple = NULL) {
         $aliases_is_null = ($aliases === NULL);
         $count = count($functions);
         if (!$aliases_is_null && $count != count($aliases)) {
-            throw new HproseException('The count of functions is not matched with aliases');
+            throw new Exception('The count of functions is not matched with aliases');
         }
-        if($count){
-            foreach($functions as $i => $function){
-                if ($aliases_is_null) {
-                    $this->addFunction($function, NULL, $resultMode, $simple);
-                }
-                else {
-                    $this->addFunction($function, $aliases[$i], $resultMode, $simple);
-                }
+        for ($i = 0; $i < $count; $i++) {
+            $function = $functions[$i];
+            if ($aliases_is_null) {
+                $this->addFunction($function, NULL, $resultMode, $simple);
+            }
+            else {
+                $this->addFunction($function, $aliases[$i], $resultMode, $simple);
             }
         }
     }
@@ -340,10 +352,10 @@ class HproseHttpServer {
             }
         }
         if (!$aliases_is_null && $count != count($aliases)) {
-            throw new HproseException('The count of methods is not matched with aliases');
+            throw new Exception('The count of methods is not matched with aliases');
         }
         if($count){
-            foreach($methods as $i => $method){
+            foreach($methods as $k => $method){
                 if (is_string($belongto)) {
                     $function = array($belongto, $method);
                 }
@@ -354,7 +366,7 @@ class HproseHttpServer {
                     $this->addFunction($function, $method, $resultMode, $simple);
                 }
                 else {
-                    $this->addFunction($function, $aliases[$i], $resultMode, $simple);
+                    $this->addFunction($function, $aliases[$k], $resultMode, $simple);
                 }
             }
         }
@@ -439,7 +451,7 @@ class HproseHttpServer {
                 }
                 break;
             }
-            throw new HproseException('Wrong arguments');
+            throw new Exception('Wrong arguments');
         }
     }
     public function isDebugEnabled() {
@@ -508,8 +520,8 @@ class HproseHttpServer {
         $this->error_types = $error_types;
     }
     public function handle() {
-        if (!isset($HTTP_RAW_POST_DATA)) $HTTP_RAW_POST_DATA = file_get_contents("php://input");
-        $this->input = new HproseStringStream($this->inputFilter($HTTP_RAW_POST_DATA));
+        if (!isset($GLOBALS['HTTP_RAW_POST_DATA'])) $GLOBALS['HTTP_RAW_POST_DATA'] = file_get_contents("php://input");
+        $this->input = new HproseStringStream($this->inputFilter($GLOBALS['HTTP_RAW_POST_DATA']));
         $this->output = new HproseStringStream();
         set_error_handler(array(&$this, '__errorHandler'), $this->error_types);
         ob_start(array(&$this, "__filterHandler"));
@@ -524,7 +536,7 @@ class HproseHttpServer {
                 switch ($this->input->getc()) {
                     case HproseTags::TagCall: return $this->doInvoke();
                     case HproseTags::TagEnd: return $this->doFunctionList();
-                    default: throw new HproseException("Wrong Request: \r\n" . $HTTP_RAW_POST_DATA);
+                    default: throw new Exception("Wrong Request: \r\n" . $GLOBALS['HTTP_RAW_POST_DATA']);
                 }
             }
             catch (Exception $e) {
@@ -544,3 +556,4 @@ class HproseHttpServer {
         $this->handle();
     }
 }
+?>

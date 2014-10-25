@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,7 +14,7 @@
  *                                                        *
  * hprose curl http client class for php5.                *
  *                                                        *
- * LastModified: Mar 19, 2014                             *
+ * LastModified: Jul 12, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
@@ -39,6 +38,9 @@ class HproseHttpClient extends HproseBaseHttpClient {
         curl_setopt($this->curl, CURLOPT_HEADER, TRUE);
         curl_setopt($this->curl, CURLOPT_SSL_VERIFYPEER, FALSE);
         curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, TRUE);
+        if (!ini_get('safe_mode')) {
+            curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, TRUE);
+        }
         curl_setopt($this->curl, CURLOPT_POST, TRUE);
         curl_setopt($this->curl, CURLOPT_POSTFIELDS, $request);
         $headers_array = array($this->getCookie(),
@@ -66,7 +68,7 @@ class HproseHttpClient extends HproseBaseHttpClient {
         $response = curl_exec($this->curl);
         $errno = curl_errno($this->curl);
         if ($errno) {
-            throw new HproseException($errno . ": " . curl_error($this->curl));
+            throw new Exception($errno . ": " . curl_error($this->curl));
         }
         do {
             list($response_headers, $response) = explode("\r\n\r\n", $response, 2);
@@ -83,7 +85,7 @@ class HproseHttpClient extends HproseBaseHttpClient {
             }
         } while (substr($response_code, 0, 1) == "1");
         if ($response_code != '200') {
-            throw new HproseException($response_code . ": " . $response_status . "\r\n\r\n" . $response);
+            throw new Exception($response_code . ": " . $response_status . "\r\n\r\n" . $response);
         }
         $this->setCookie($http_response_header);
         return $response;
@@ -92,3 +94,5 @@ class HproseHttpClient extends HproseBaseHttpClient {
         curl_close($this->curl);
     }
 }
+
+?>

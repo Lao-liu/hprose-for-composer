@@ -4,7 +4,6 @@
 |                          hprose                          |
 |                                                          |
 | Official WebSite: http://www.hprose.com/                 |
-|                   http://www.hprose.net/                 |
 |                   http://www.hprose.org/                 |
 |                                                          |
 \**********************************************************/
@@ -15,19 +14,22 @@
  *                                                        *
  * hprose string stream class for php5.                   *
  *                                                        *
- * LastModified: Feb 11, 2014                             *
+ * LastModified: Jul 12, 2014                             *
  * Author: Ma Bingyao <andot@hprose.com>                  *
  *                                                        *
 \**********************************************************/
 
-require_once("HproseAbstractStream.php");
+if (!extension_loaded('hprose')) {
 
-class HproseStringStream extends HproseAbstractStream {
+class HproseStringStream {
     protected $buffer;
     protected $pos;
     protected $mark;
     protected $length;
     public function __construct($string = '') {
+        $this->init($string);
+    }
+    public function init($string) {
         $this->buffer = $string;
         $this->pos = 0;
         $this->mark = -1;
@@ -48,6 +50,11 @@ class HproseStringStream extends HproseAbstractStream {
     public function read($length) {
         $s = substr($this->buffer, $this->pos, $length);
         $this->skip($length);
+        return $s;
+    }
+    public function readfull() {
+        $s = substr($this->buffer, $this->pos);
+        $this->pos = $this->length;
         return $s;
     }
     public function readuntil($tag) {
@@ -111,3 +118,6 @@ class HproseStringStream extends HproseAbstractStream {
         return $this->buffer;
     }
 }
+
+} // endif (!extension_loaded('hprose'))
+?>
